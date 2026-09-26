@@ -24,8 +24,8 @@ I2SClass i2s;
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 WiFiClient client;
-const char* ssid = "Infostrada-BBC830";
-const char* password = "fNqyngf4Ks";
+const char* ssid = "id";
+const char* password = "password";
 
 uint8_t bufferSpeaker[2048];
 int32_t bufferMic[512];
