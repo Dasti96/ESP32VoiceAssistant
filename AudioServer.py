@@ -22,20 +22,25 @@ server.listen(1)
 conn, addr = server.accept()
 print("Connected by", addr)
 TIME_LISTENING = 5  #uguale al massimo tempo di registrazione del mic: oltre i 5s si blocca il buffer TCP
-TARGET_READ = TIME_LISTENING * 16000 * 2
+# TARGET_READ = TIME_LISTENING * 16000 * 2
 audio = bytearray()
 
-start = time.time()
 elapsed = 0.0
+start = 0.0
+startReceived = False
 
-#while len(audio) < TARGET_READ:
-while elapsed - start < TIME_LISTENING:
+while True:
     data = conn.recv(4096)
     if not data:
         break
-    elapsed = time.time()
+    if not startReceived:
+        start = time.time()
+        startReceived = True
     audio.extend(data)
     print("Ricevuti", len(data), "byte")
+    elapsed = time.time()
+    if elapsed - start >= TIME_LISTENING:
+        break
 
 
 with wave.open("sound.wav", "wb") as out_f:
@@ -46,37 +51,37 @@ with wave.open("sound.wav", "wb") as out_f:
 
 
 
-with open("sound.wav", 'rb') as f:
-    audio_bytes = f.read()
-interaction = clientGoogle.interactions.create(
-    model="gemini-3.8-flash",
-    input=[{"type": "audio",
-            "data": base64.b64encode(audio_bytes).decode('utf-8'),
-            "mime_type": "audio/wav"
-            }
-    ]
-)
-print(interaction.output_text)
+# with open("sound.wav", 'rb') as f:
+#     audio_bytes = f.read()
+# interaction = clientGoogle.interactions.create(
+#     model="gemini-3.8-flash",
+#     input=[{"type": "audio",
+#             "data": base64.b64encode(audio_bytes).decode('utf-8'),
+#             "mime_type": "audio/wav"
+#             }
+#     ]
+# )
+# print(interaction.output_text)
+#
+# if interaction.output_text:
+#     url = 'http://localhost:5050/v1/audio/speech'
+#     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer your_api_key_here'}
+#     data = {"input": interaction.output_text,
+#             "voice": "it-IT-DiegoNeural",
+#             "response_format": "mp3",
+#             "speed": 1.1
+#             }
+#
+#     r = requests.post(url, json = data, headers = headers)
+#     with open("output.mp3", "wb") as f:
+#         f.write(r.content)
 
-if interaction.output_text:
-    url = 'http://localhost:5050/v1/audio/speech'
-    headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer your_api_key_here'}
-    data = {"input": interaction.output_text,
-            "voice": "it-IT-DiegoNeural",
-            "response_format": "mp3",
-            "speed": 1.1
-            }
-
-    r = requests.post(url, json = data, headers = headers)
-    with open("output.mp3", "wb") as f:
-        f.write(r.content)
-
-# start = time.time()
-# elapsed = 0.0
-# w = 20.0
-# while elapsed - start< w:
-#     elapsed = time.time()
-#     print(elapsed - start)
+start = time.time()
+elapsed = 0.0
+w = 20.0
+while elapsed - start< w:
+    elapsed = time.time()
+    print(elapsed - start)
 
 ffmpeg = subprocess.Popen(
     [
