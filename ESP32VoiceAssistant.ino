@@ -24,7 +24,7 @@ I2SClass i2s;
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 WiFiClient client;
-const char* ssid = "id";
+const char* ssid = "ssid";
 const char* password = "password";
 
 uint8_t bufferSpeaker[2048];
@@ -36,6 +36,9 @@ volatile bool recordMic = false;
 volatile uint32_t deltaTime = 0;
 volatile uint32_t stopMicTime = 0;
 
+volatile uint32_t lastPress;
+volatile uint32_t currentPress;
+volatile bool canPress = true;
 volatile uint32_t startMicTime;
 
 void setupI2S() { 
@@ -48,7 +51,7 @@ void setupI2S() {
 
 void setup() {
   pinMode(INT_PIN, INPUT_PULLUP);
-  attachInterrupt(INT_PIN, recordingInterrupt, RISING);
+  attachInterrupt(INT_PIN, recordingInterrupt, FALLING);
   // put your setup code here, to run once:
   Serial.begin(115200);
 
@@ -83,7 +86,7 @@ void setup() {
 
 
 void loop() {  
-
+  currentPress = millis();
   if(recordMic){
     stopMicTime = millis();
     deltaTime = stopMicTime - startMicTime;
@@ -101,7 +104,7 @@ void loop() {
 
 
   //microfono
-  if(recordMic && deltaTime < MAX_MIC_LISTENING){    
+    
     size_t byteRead;
     byteRead = i2s.readBytes((char*)bufferMic, sizeof(bufferMic));
     int nSamples = byteRead/sizeof(int32_t);
@@ -115,22 +118,30 @@ void loop() {
     }  
 
     size_t bytesToSend = nSamples * sizeof(int16_t);   
+  if(recordMic && deltaTime < MAX_MIC_LISTENING){   
     size_t sent = client.write((uint8_t*)pcm16,bytesToSend);  
   }
 } 
 
 
 void recordingInterrupt(){ 
-  if(deltaTime >= MAX_MIC_LISTENING)
-    recordMic = false;  
+  
+  if(currentPress - lastPress > 20){    
+    canPress = true;   
+    lastPress = currentPress;
+  }
+  else 
+    canPress = false;
 
-  recordMic=!recordMic;
+  if(canPress) {
+    if(deltaTime >= MAX_MIC_LISTENING)
+      recordMic = false;
+
+    recordMic=!recordMic;   
+  }
+  
   if(recordMic)
-    startMicTime = millis();	//tempo acquisito da quando inizia il programma
-  /*else {
-    stopMicTime = millis();
-    deltaTime = stopMicTime - startMicTime;
-  }*/
+    startMicTime = millis();
 }
 
 void oledPrint(String text){
